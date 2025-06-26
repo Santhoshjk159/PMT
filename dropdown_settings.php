@@ -804,6 +804,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
             font-size: 1.25rem;
         }
 
+        /* Alert close button and auto-dismiss styles */
+        .alert-close {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            color: inherit;
+            opacity: 0.6;
+            transition: opacity 0.3s ease;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .alert-close:hover {
+            opacity: 1;
+            background: rgba(0,0,0,0.1);
+            border-radius: 50%;
+        }
+
+        .auto-dismiss {
+            animation: fadeOutAlert 0.5s ease forwards;
+        }
+
+        @keyframes fadeOutAlert {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-10px); }
+        }
+
         /* Container Layout */
         .container {
             display: grid;
@@ -1103,6 +1138,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
             overflow: auto;
             background-color: rgba(15, 23, 42, 0.7);
             backdrop-filter: blur(8px);
+        }
+
+        .modal.show {
+            display: block;
+        }
+
+        body.modal-open {
+            overflow: hidden;
         }
 
         .modal-content {
@@ -1738,16 +1781,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
 
         <!-- Display import messages -->
         <?php if (isset($importSuccess)): ?>
-            <div class="alert alert-success">
+            <div class="alert alert-success auto-dismiss" data-timeout="1500">
                 <i class="fas fa-check-circle"></i>
                 <?php echo $importSuccess; ?>
+                <button type="button" class="alert-close" onclick="this.parentElement.style.display='none'">&times;</button>
             </div>
         <?php endif; ?>
         
         <?php if (isset($importError)): ?>
-            <div class="alert alert-danger">
+            <div class="alert alert-danger auto-dismiss" data-timeout="3000">
                 <i class="fas fa-exclamation-circle"></i>
                 <?php echo $importError; ?>
+                <button type="button" class="alert-close" onclick="this.parentElement.style.display='none'">&times;</button>
             </div>
         <?php endif; ?>
 
@@ -1864,6 +1909,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
 
         // Document ready
         $(document).ready(function() {
+            // Auto-dismiss alert messages
+            $('.auto-dismiss').each(function() {
+                const alert = $(this);
+                const timeout = alert.data('timeout') || 2000; // Reduced default timeout
+                
+                // Add a manual close button functionality
+                alert.find('.alert-close').on('click', function() {
+                    alert.fadeOut(300, function() {
+                        alert.remove();
+                    });
+                });
+                
+                // Auto dismiss after timeout
+                setTimeout(function() {
+                    if (alert.is(':visible')) {
+                        alert.fadeOut(500, function() {
+                            alert.remove();
+                        });
+                    }
+                }, timeout);
+            });
+            
             // Load categories
             loadCategories();
             
@@ -1881,12 +1948,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
             });
             
             $('.close').click(function() {
-                $('#categoryManagementModal').hide();
+                closeModal();
             });
             
             $(window).click(function(event) {
                 if ($(event.target).is('#categoryManagementModal')) {
-                    $('#categoryManagementModal').hide();
+                    closeModal();
                 }
             });
 
@@ -1895,6 +1962,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
                 validateFormField($(this));
             });
         });
+
+        // Function to properly close modal
+        function closeModal() {
+            $('#categoryManagementModal').removeClass('show').hide();
+            $('body').removeClass('modal-open');
+            $('.modal-backdrop').remove();
+        }
+
+        // Function to close all active alerts
+        function closeAllAlerts() {
+            // Close SweetAlert2 popups
+            if (Swal.isVisible()) {
+                Swal.close();
+            }
+            
+            // Close any visible alert divs
+            $('.alert').fadeOut(300, function() {
+                $(this).remove();
+            });
+        }
 
         // Enhanced form field validation
         function validateFormField($field) {
@@ -2024,7 +2111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
                 });
             }
             
-            $('#categoryManagementModal').show();
+            $('#categoryManagementModal').addClass('show').show();
+            $('body').addClass('modal-open');
         }
 
         // Populate category dropdown for import
@@ -2123,7 +2211,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
                 
                 li.find('.status-btn').click(function(e) {
                     e.stopPropagation();
-                    toggleOptionStatus(option.id, !isActive);
+                    // Get current status from the element's classes instead of the old isActive variable
+                    const currentlyActive = !$(this).closest('li').hasClass('inactive');
+                    toggleOptionStatus(option.id, !currentlyActive);
                 });
                 
                 li.find('.delete-btn').click(function(e) {
@@ -2202,8 +2292,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
         
         // Toggle option status
         function toggleOptionStatus(optionId, newStatus) {
-            const optionValue = $(`li[data-id="${optionId}"] .option-value`).text().trim();
-            const optionLabel = $(`li[data-id="${optionId}"] .option-label`).text().trim() || optionValue;
+            const li = $(`li[data-id="${optionId}"]`);
+            const optionValue = li.find('.option-value').text().trim();
+            const optionLabel = li.find('.option-label').text().trim() || optionValue;
+            
+            // Show visual feedback immediately
+            const statusBtn = li.find('.status-btn');
+            const originalIcon = statusBtn.find('i').attr('class');
+            statusBtn.prop('disabled', true).find('i').attr('class', 'fas fa-spinner fa-spin');
             
             $.ajax({
                 url: 'dropdown_settings.php',
@@ -2218,22 +2314,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
-                        const li = $(`li[data-id="${optionId}"]`);
+                        // Update UI immediately without full reload
                         if (newStatus) {
                             li.removeClass('inactive');
-                            li.find('.status-btn i').removeClass('fa-toggle-off').addClass('fa-toggle-on');
-                            li.find('.status-btn').attr('title', 'Deactivate');
+                            statusBtn.find('i').removeClass('fa-toggle-off fa-spinner fa-spin').addClass('fa-toggle-on');
+                            statusBtn.attr('title', 'Deactivate');
                         } else {
                             li.addClass('inactive');
-                            li.find('.status-btn i').removeClass('fa-toggle-on').addClass('fa-toggle-off');
-                            li.find('.status-btn').attr('title', 'Activate');
+                            statusBtn.find('i').removeClass('fa-toggle-on fa-spinner fa-spin').addClass('fa-toggle-off');
+                            statusBtn.attr('title', 'Activate');
                         }
+                        statusBtn.prop('disabled', false);
                         showAlert('Success', response.message, 'success');
                     } else {
+                        // Restore original state on error
+                        statusBtn.find('i').attr('class', originalIcon);
+                        statusBtn.prop('disabled', false);
                         showAlert('Error', response.message || 'Failed to update option status', 'error');
                     }
                 },
                 error: function() {
+                    // Restore original state on error
+                    statusBtn.find('i').attr('class', originalIcon);
+                    statusBtn.prop('disabled', false);
                     showAlert('Error', 'Failed to connect to the server', 'error');
                 }
             });
@@ -2316,7 +2419,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
                         renderCategories();
                         populateCategoryDropdown();
                         showAlert('Success', response.message, 'success');
-                        $('#categoryManagementModal').hide();
+                        closeModal();
                     } else {
                         showAlert('Error', response.message || 'Failed to add category', 'error');
                     }
@@ -2390,6 +2493,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
                 cancelButtonText: 'Cancel',
                 confirmButtonColor: '#2563eb',
                 cancelButtonColor: '#64748b',
+                allowOutsideClick: true,
+                allowEscapeKey: true,
                 customClass: {
                     popup: 'custom-swal-popup',
                     confirmButton: 'custom-swal-button',
@@ -2411,13 +2516,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    updateOption(option.id, result.value.value, result.value.label);
+                    updateOption(option.id, result.value.value, result.value.label, true);
+                } else if (result.isDismissed) {
+                    // Modal was cancelled or closed - no action needed
+                    // SweetAlert2 automatically closes
                 }
             });
         }
         
         // Update option
-        function updateOption(optionId, value, label) {
+        function updateOption(optionId, value, label, preserveStatus = true) {
+            // Get current status if preserveStatus is true
+            let isActive = 1; // Default to active
+            if (preserveStatus) {
+                const currentItem = $(`li[data-id="${optionId}"]`);
+                isActive = currentItem.hasClass('inactive') ? 0 : 1;
+            }
+            
             $.ajax({
                 url: 'dropdown_settings.php',
                 type: 'POST',
@@ -2426,7 +2541,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
                     option_id: optionId,
                     value: value,
                     label: label,
-                    is_active: 1
+                    is_active: isActive
                 },
                 dataType: 'json',
                 success: function(response) {
@@ -2558,15 +2673,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
         
         // Enhanced alert function using SweetAlert2
         function showAlert(title, message, type = 'info') {
+            // Close any existing alert first
+            if (Swal.isVisible()) {
+                Swal.close();
+            }
+            
             const config = {
                 title: title,
                 text: message,
                 confirmButtonColor: '#2563eb',
-                timer: type === 'success' ? 3000 : null,
-                timerProgressBar: type === 'success',
+                timer: type === 'success' ? 1500 : (type === 'error' ? 3000 : null),
+                timerProgressBar: type === 'success' || type === 'error',
+                showConfirmButton: false, // Always hide confirm button for auto-dismiss
                 customClass: {
                     popup: 'custom-swal-popup',
                     confirmButton: 'custom-swal-button'
+                },
+                allowOutsideClick: true,
+                allowEscapeKey: true,
+                toast: type === 'success', // Use toast mode for success messages
+                position: type === 'success' ? 'top-end' : 'center',
+                showClass: {
+                    popup: 'animate__animated animate__fadeInDown'
+                },
+                hideClass: {
+                    popup: 'animate__animated animate__fadeOutUp'
                 }
             };
             
@@ -2574,20 +2705,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
                 case 'success':
                     config.icon = 'success';
                     config.confirmButtonColor = '#10b981';
+                    config.timer = 1500; // Quick dismiss for success
+                    config.toast = true;
+                    config.position = 'top-end';
                     break;
                 case 'error':
                     config.icon = 'error';
                     config.confirmButtonColor = '#ef4444';
+                    config.timer = 3000;
+                    config.showConfirmButton = true; // Show button for errors
                     break;
                 case 'warning':
                     config.icon = 'warning';
                     config.confirmButtonColor = '#f59e0b';
+                    config.timer = 2000;
+                    config.timerProgressBar = true;
                     break;
                 default:
                     config.icon = 'info';
+                    config.showConfirmButton = true;
             }
             
-            Swal.fire(config);
+            return Swal.fire(config);
         }
         
         // Enhanced keyboard shortcuts
@@ -2602,7 +2741,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['import_submit'])) {
             
             // Escape to close modals
             if (e.which === 27) {
-                $('#categoryManagementModal').hide();
+                closeModal();
             }
             
             // Ctrl/Cmd + N to add new category

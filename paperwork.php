@@ -472,23 +472,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .rate-input-group {
             display: flex;
-            gap: 12px;
+            gap: 8px;
             align-items: center;
         }
 
         .rate-input-group input {
-            flex: 1;
+            flex: 2;
         }
 
         .rate-input-group select {
+            flex: 1;
             min-width: 120px;
         }
 
-        .rate-unit {
-            font-weight: 600;
-            color: var(--primary-grey);
-            font-size: 0.9rem;
-            white-space: nowrap;
+        .rate-currency {
+            font-weight: 700;
+            color: var(--secondary-blue);
+            font-size: 1.1rem;
+            background: var(--light-grey);
+            padding: 14px 16px;
+            border: 2px solid var(--medium-grey);
+            min-width: 50px;
+            text-align: center;
+            border-radius: 0;
         }
 
         /* Form Actions */
@@ -1003,7 +1009,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <i class="fas fa-user"></i>
                 <span>Profile</span>
             </a>
-            <a href="settings.php" class="sidebar-item">
+            <a href="dropdown_settings.php" class="sidebar-item">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </a>
@@ -1198,9 +1204,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <input type="hidden" id="final_candidate_source_hidden" name="final_candidate_source" value="">
+                </div>                        <input type="hidden" id="final_candidate_source_hidden" name="final_candidate_source" value="">
+                        <input type="hidden" id="client_rate_combined_hidden" name="client_rate_combined" value="">
+                        <input type="hidden" id="pay_rate_combined_hidden" name="pay_rate_combined" value="">
 
                 <!-- Employer Details Section -->
                 <div class="form-section">
@@ -1566,16 +1572,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <i class="fas fa-chevron-down"></i>
                     </div>
                     <div class="section-content">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label class="required">Pay Type</label>
-                                <select class="form-control" name="placement_type" required>
-                                    <option value="" disabled selected>Select option</option>
-                                    <?php echo outputDropdownOptions('pay_type', $allDropdownOptions, false); ?>
-                                </select>
-                            </div>
-                        </div>
-
                         <div class="payment-layout">
                             <!-- BILL RATE Section -->
                             <div class="payment-section">
@@ -1590,10 +1586,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="form-group">
                                     <label class="required">Client Bill Rate</label>
                                     <div class="rate-input-group">
-                                        <input type="number" class="form-control" name="clientrate" required>
-                                        <span class="rate-unit">/hour</span>
-                                        <select class="form-control" name="bill_currency" required>
-                                            <?php echo outputDropdownOptions('currency', $allDropdownOptions, false); ?>
+                                        <input type="number" class="form-control" name="clientrate" step="0.01" min="0" placeholder="Enter amount" required>
+                                        <span class="rate-currency">USD</span>
+                                        <select class="form-control" name="bill_rate_period" required>
+                                            <option value="" disabled selected>Select period</option>
+                                            <option value="hour">/hour</option>
+                                            <option value="day">/day</option>
+                                            <option value="week">/week</option>
+                                            <option value="month">/month</option>
+                                            <option value="year">/year</option>
+                                            <option value="project">/project</option>
+                                            <option value="custom">Custom</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1604,7 +1607,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <h4>Pay Rate</h4>
                                 <div class="form-group">
                                     <label class="required">Tax Term</label>
-                                    <select class="form-control" name="pay_type" required>
+                                    <select class="form-control" name="pay_tax_term" required>
                                         <option value="" disabled selected>Select option</option>
                                         <?php echo outputDropdownOptions('tax_term', $allDropdownOptions, false); ?>
                                     </select>
@@ -1612,10 +1615,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="form-group">
                                     <label class="required">Pay Rate</label>
                                     <div class="rate-input-group">
-                                        <input type="number" class="form-control" name="payrate" required>
-                                        <span class="rate-unit">/hour</span>
-                                        <select class="form-control" name="pay_currency" required>
-                                            <?php echo outputDropdownOptions('currency', $allDropdownOptions, false); ?>
+                                        <input type="number" class="form-control" name="payrate" step="0.01" min="0" placeholder="Enter amount" required>
+                                        <span class="rate-currency">USD</span>
+                                        <select class="form-control" name="pay_rate_period" required>
+                                            <option value="" disabled selected>Select period</option>
+                                            <option value="hour">/hour</option>
+                                            <option value="day">/day</option>
+                                            <option value="week">/week</option>
+                                            <option value="month">/month</option>
+                                            <option value="year">/year</option>
+                                            <option value="project">/project</option>
+                                            <option value="custom">Custom</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1855,8 +1865,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 });
             });
 
-            // Pay type listener for rate units
-            setupPayTypeListener();
+            // Pay type listener for rate units (removed - no longer needed)
+            
+            // Add event listeners for rate combination
+            document.querySelector('input[name="clientrate"]').addEventListener('input', combineClientRate);
+            document.querySelector('select[name="bill_rate_period"]').addEventListener('change', combineClientRate);
+            document.querySelector('select[name="bill_type"]').addEventListener('change', combineClientRate);
+            
+            document.querySelector('input[name="payrate"]').addEventListener('input', combinePayRate);
+            document.querySelector('select[name="pay_rate_period"]').addEventListener('change', combinePayRate);
+            document.querySelector('select[name="pay_tax_term"]').addEventListener('change', combinePayRate);
+        }
+
+        // Rate combination functions
+        function combineClientRate() {
+            const rate = document.querySelector('input[name="clientrate"]').value;
+            const period = document.querySelector('select[name="bill_rate_period"]').value;
+            const taxTerm = document.querySelector('select[name="bill_type"]').value;
+            
+            if (rate && period && taxTerm) {
+                let periodText = '';
+                switch(period) {
+                    case 'hour': periodText = '/hour'; break;
+                    case 'day': periodText = '/day'; break;
+                    case 'week': periodText = '/week'; break;
+                    case 'month': periodText = '/month'; break;
+                    case 'year': periodText = '/year'; break;
+                    case 'project': periodText = '/project'; break;
+                    default: periodText = '/' + period;
+                }
+                
+                const combined = `${rate} USD ${periodText} on ${taxTerm}`;
+                document.getElementById('client_rate_combined_hidden').value = combined;
+            }
+        }
+        
+        function combinePayRate() {
+            const rate = document.querySelector('input[name="payrate"]').value;
+            const period = document.querySelector('select[name="pay_rate_period"]').value;
+            const taxTerm = document.querySelector('select[name="pay_tax_term"]').value;
+            
+            if (rate && period && taxTerm) {
+                let periodText = '';
+                switch(period) {
+                    case 'hour': periodText = '/hour'; break;
+                    case 'day': periodText = '/day'; break;
+                    case 'week': periodText = '/week'; break;
+                    case 'month': periodText = '/month'; break;
+                    case 'year': periodText = '/year'; break;
+                    case 'project': periodText = '/project'; break;
+                    default: periodText = '/' + period;
+                }
+                
+                const combined = `${rate} USD ${periodText} on ${taxTerm}`;
+                document.getElementById('pay_rate_combined_hidden').value = combined;
+            }
         }
 
         // Candidate Source Functions
@@ -2198,6 +2261,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             document.getElementById('final_candidate_source_hidden').value = finalSource;
             
+            // Ensure rate combinations are set
+            combineClientRate();
+            combinePayRate();
+            
             // Create FormData and submit
             const formData = new FormData(this);
             
@@ -2257,32 +2324,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 submitBtn.disabled = false;
             });
         });
-
-        // Pay type functionality
-        function setupPayTypeListener() {
-            const payTypeSelect = document.querySelector('select[name="placement_type"]');
-            
-            if (!payTypeSelect) return;
-            
-            function updateRateText() {
-                const selectedValue = payTypeSelect.value;
-                let rateText = '/hour';
-                
-                if (selectedValue === 'Monthly') rateText = '/month';
-                else if (selectedValue === 'Daily') rateText = '/day';
-                else if (selectedValue === 'Weekly') rateText = '/week';
-                else if (selectedValue === 'Bi-Weekly') rateText = '/bi-week';
-                else if (selectedValue === 'Semi-Monthly') rateText = '/semi-month';
-                else if (selectedValue === 'Per Annum') rateText = '/year';
-                
-                const rateUnits = document.querySelectorAll('.rate-unit');
-                rateUnits.forEach(span => {
-                    span.textContent = rateText;
-                });
-            }
-            
-            payTypeSelect.addEventListener('change', updateRateText);
-        }
 
         // Inactivity timer
         let inactivityTimer;

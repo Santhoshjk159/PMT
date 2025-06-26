@@ -2304,7 +2304,7 @@ if ($activityResult === false) {
                 <i class="fas fa-file-alt"></i>
                 <span>Paperwork</span>
             </a>
-            <a href="activitylogs.php" class="sidebar-item">
+            <a href="activity_logs.php" class="sidebar-item">
                 <i class="fas fa-file-alt"></i>
                 <span>Activity Logs</span>
             </a>

@@ -101,6 +101,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     
                     // Send email notification to admin about status change
+                    $emailSent = false;
+                    $emailMessage = '';
+                    
                     if (!empty($currentStatus) && $currentStatus !== $status) {
                         try {
                             // Get user's full name for email
@@ -145,16 +148,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             
                             if ($emailSent) {
                                 error_log("Status change notification email sent successfully for record ID: $recordId");
+                                $emailMessage = 'Notification email sent successfully';
                             } else {
                                 error_log("Failed to send status change notification email for record ID: $recordId");
+                                $emailMessage = 'Email notification failed to send';
                             }
                         } catch (Exception $emailException) {
                             error_log("Exception while sending status change notification email: " . $emailException->getMessage());
+                            $emailMessage = 'Email notification failed due to error';
                             // Don't fail the entire operation if email fails
                         }
                     }
                     
-                    echo json_encode(['success' => true, 'status' => 'success', 'message' => 'Status updated successfully']);
+                    // Prepare response with email status information
+                    $response = [
+                        'success' => true, 
+                        'status' => 'success', 
+                        'message' => 'Status updated successfully',
+                        'email_sent' => $emailSent,
+                        'email_message' => $emailMessage,
+                        'candidate_name' => $candidateName,
+                        'new_status' => formatStatusForEmail($status)
+                    ];
+                    
+                    echo json_encode($response);
                 } else {
                     echo json_encode(['success' => false, 'status' => 'error', 'message' => 'No rows affected - record may not exist']);
                 }
@@ -468,7 +485,7 @@ function buildStatusChangeEmailBody($changes, $recordInfo, $modifiedBy, $modifie
                         <div class='change-label'>{$fieldName}</div>
                         <div class='status-comparison'>
                             <div class='status-item old-status'>{$oldValue}</div>
-                            <div class='arrow'>→</div>
+                            <div class='arrow'>-></div>
                             <div class='status-item new-status'>{$newValue}</div>
                         </div>";
         

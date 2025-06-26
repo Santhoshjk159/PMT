@@ -1906,7 +1906,7 @@ if (isset($_POST['clear_logs']) && $_POST['clear_logs'] == 'confirm') {
                 <i class="fas fa-user"></i>
                 <span>Profile</span>
             </a>
-            <a href="settings.php" class="activity-sidebar-item">
+            <a href="dropdown_settings.php" class="activity-sidebar-item">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </a>
