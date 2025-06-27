@@ -1207,6 +1207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>                        <input type="hidden" id="final_candidate_source_hidden" name="final_candidate_source" value="">
                         <input type="hidden" id="client_rate_combined_hidden" name="client_rate_combined" value="">
                         <input type="hidden" id="pay_rate_combined_hidden" name="pay_rate_combined" value="">
+                        <input type="hidden" id="final_benefits_hidden" name="benifits" value="">
 
                 <!-- Employer Details Section -->
                 <div class="form-section">
@@ -1594,9 +1595,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             <option value="day">/day</option>
                                             <option value="week">/week</option>
                                             <option value="month">/month</option>
-                                            <option value="year">/year</option>
+                                            <option value="annum">/annum</option>
                                             <option value="project">/project</option>
-                                            <option value="custom">Custom</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1623,9 +1623,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             <option value="day">/day</option>
                                             <option value="week">/week</option>
                                             <option value="month">/month</option>
-                                            <option value="year">/year</option>
+                                            <option value="annum">/annum</option>
                                             <option value="project">/project</option>
-                                            <option value="custom">Custom</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1640,7 +1639,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                             <div class="form-group">
                                 <label class="required">Benefits</label>
-                                <input type="text" class="form-control" name="benifits" required>
+                                <select class="form-control" name="benefits_type" id="benefits_type" onchange="toggleBenefitsField()" required>
+                                    <option value="" disabled selected>Select option</option>
+                                    <option value="with_benefits">With Benefits</option>
+                                    <option value="without_benefits">Without Benefits</option>
+                                    <option value="others">Others</option>
+                                </select>
+                            </div>
+                            <div class="form-group hidden-field" id="benefits_others_field">
+                                <label class="required">Specify Benefits</label>
+                                <input type="text" class="form-control" name="benefits_others" id="benefits_others" placeholder="Please specify the benefits details" required>
                             </div>
                             <div class="form-group">
                                 <label class="required">Additional Vendor Fee (If applicable)</label>
@@ -1875,6 +1883,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             document.querySelector('input[name="payrate"]').addEventListener('input', combinePayRate);
             document.querySelector('select[name="pay_rate_period"]').addEventListener('change', combinePayRate);
             document.querySelector('select[name="pay_tax_term"]').addEventListener('change', combinePayRate);
+            
+            // Add event listener for benefits others field
+            document.querySelector('input[name="benefits_others"]').addEventListener('input', function() {
+                const finalBenefitsHidden = document.getElementById("final_benefits_hidden");
+                finalBenefitsHidden.value = this.value;
+            });
         }
 
         // Rate combination functions
@@ -2126,6 +2140,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 reasonField.classList.add('hidden-field');
                 reasonInput.required = false;
                 reasonInput.value = "";
+            }
+            updateProgress();
+        }
+
+        function toggleBenefitsField() {
+            const benefitsType = document.getElementById("benefits_type").value;
+            const benefitsOthersField = document.getElementById("benefits_others_field");
+            const benefitsOthersInput = document.getElementById("benefits_others");
+            const finalBenefitsHidden = document.getElementById("final_benefits_hidden");
+            
+            if (benefitsType === "others") {
+                benefitsOthersField.classList.remove('hidden-field');
+                benefitsOthersInput.required = true;
+                benefitsOthersInput.value = "";
+                finalBenefitsHidden.value = "";
+            } else {
+                benefitsOthersField.classList.add('hidden-field');
+                benefitsOthersInput.required = false;
+                if (benefitsType === "with_benefits") {
+                    benefitsOthersInput.value = "With Benefits";
+                    finalBenefitsHidden.value = "With Benefits";
+                } else if (benefitsType === "without_benefits") {
+                    benefitsOthersInput.value = "Without Benefits";
+                    finalBenefitsHidden.value = "Without Benefits";
+                } else {
+                    benefitsOthersInput.value = "";
+                    finalBenefitsHidden.value = "";
+                }
             }
             updateProgress();
         }

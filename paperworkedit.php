@@ -344,8 +344,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $historyStmt = $conn->prepare($historyQuery);
                     if ($historyStmt !== false) {
                         $modificationDetails = "$description updated";
-                        $oldValue = $record[$fieldName];
-                        $newValue = $_POST[$fieldName];
+                        $oldValue = $record[$fieldName] ?? '';
+                        $newValue = $_POST[$fieldName] ?? '';
                         $historyStmt->bind_param("issss", $recordId, $userEmail, $modificationDetails, $oldValue, $newValue);
                         $historyStmt->execute();
                     }
@@ -372,8 +372,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $historyStmt = $conn->prepare($historyQuery);
                 if ($historyStmt !== false) {
                     $modificationDetails = "Candidate Source updated";
-                    $oldValue = $record['ccandidate_source'];
-                    $newValue = $_POST['final_candidate_source'];
+                    $oldValue = $record['ccandidate_source'] ?? '';
+                    $newValue = $_POST['final_candidate_source'] ?? '';
                     $historyStmt->bind_param("issss", $recordId, $userEmail, $modificationDetails, $oldValue, $newValue);
                     $historyStmt->execute();
                 }
@@ -397,8 +397,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $historyStmt = $conn->prepare($historyQuery);
                 if ($historyStmt !== false) {
                     $modificationDetails = "Client Rate updated";
-                    $oldValue = $record['clientrate'];
-                    $newValue = $_POST['client_rate_combined'];
+                    $oldValue = $record['clientrate'] ?? '';
+                    $newValue = $_POST['client_rate_combined'] ?? '';
                     $historyStmt->bind_param("issss", $recordId, $userEmail, $modificationDetails, $oldValue, $newValue);
                     $historyStmt->execute();
                 }
@@ -422,8 +422,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $historyStmt = $conn->prepare($historyQuery);
                 if ($historyStmt !== false) {
                     $modificationDetails = "Pay Rate updated";
-                    $oldValue = $record['payrate'];
-                    $newValue = $_POST['pay_rate_combined'];
+                    $oldValue = $record['payrate'] ?? '';
+                    $newValue = $_POST['pay_rate_combined'] ?? '';
                     $historyStmt->bind_param("issss", $recordId, $userEmail, $modificationDetails, $oldValue, $newValue);
                     $historyStmt->execute();
                 }
@@ -438,14 +438,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 // Collect change for email notification
                 $emailChanges[] = [
                     'field_name' => 'Status',
-                    'old_value' => $record['status'],
-                    'new_value' => $_POST['status']
+                    'old_value' => $record['status'] ?? '',
+                    'new_value' => $_POST['status'] ?? ''
                 ];
                 
                 // Add entry to record history
                 $modificationDetails = "Status changed to " . $_POST['status'];
-                $oldValue = $record['status'];
-                $newValue = $_POST['status'];
+                $oldValue = $record['status'] ?? '';
+                $newValue = $_POST['status'] ?? '';
                 $reason = $_POST['status_reason'] ?? '';
 
                 $historyQuery = "INSERT INTO record_history (record_id, modified_by, modified_date, modification_details, old_value, new_value) VALUES (?, ?, NOW(), ?, ?, ?)";
@@ -472,8 +472,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 // Collect change for email notification
                 $emailChanges[] = [
                     'field_name' => 'PLC Code',
-                    'old_value' => $plcCode,
-                    'new_value' => $_POST['plc_code']
+                    'old_value' => $plcCode ?? '',
+                    'new_value' => $_POST['plc_code'] ?? ''
                 ];
                 
                 // Add to history
@@ -481,8 +481,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $historyStmt = $conn->prepare($historyQuery);
                 if ($historyStmt !== false) {
                     $modificationDetails = "PLC Code updated";
-                    $oldValue = $plcCode;
-                    $newValue = $_POST['plc_code'];
+                    $oldValue = $plcCode ?? '';
+                    $newValue = $_POST['plc_code'] ?? '';
                     $historyStmt->bind_param("issss", $recordId, $userEmail, $modificationDetails, $oldValue, $newValue);
                     $historyStmt->execute();
                 }
@@ -2321,7 +2321,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             <div class="form-group">
                 <label for="benifits" class="form-label required">Benefits</label>
-                <input type="text" id="benifits" name="benifits" class="form-control" value="<?php echo htmlspecialchars($record['benifits']); ?>" required>
+                <input type="text" id="benifits" name="benifits" class="form-control" value="<?php echo htmlspecialchars($record['benifits'] ?? ''); ?>" required>
                 <div class="invalid-feedback">Please enter benefits</div>
             </div>
 
